@@ -146,14 +146,14 @@ function visitTreePaths(tree, paths, onLeafReached) {
     var treeCopy = JSON.parse(JSON.stringify(tree));
 
     // set to true all the "paths" that must be inserted in the fields string
-    for (var path in paths) {
+    for (var i = 0; i < paths.length; i++) {
         var subtree = treeCopy;
-        var steps = path.split("/");
-        for (var step in steps)
-            subtree = subtree[step];
+        var steps = path[i].split("/");
+        for (var j = 0; j < steps.length - 1; j++)
+            subtree = subtree[steps[j]];
 
         // apply the function to the leaf
-        onLeafReached(subtree, steps[-1]);
+        subtree[steps.last()] = onLeafReached(subtree[steps.last()], steps.last());
     }
 
     return treeCopy;
@@ -164,9 +164,7 @@ function createFieldsString(obj) {
 
     for (var k in obj) {
         var value = obj[k];
-        console.log(k);
         if ("boolean" === typeof value) {
-            console.log('found a boolean:' + value);
             if (value)
                 fields += k + ",";
         } else {
@@ -188,9 +186,12 @@ function hasTrueInSubtree(obj) {
         if ("boolean" === typeof value) {
             if (value) return true;
         } else {
-            return hasTrueInSubtree(value);
+            if (hasTrueInSubtree(value))
+                return true;
         }
     }
+
+    return false;
 }
 
 searchFieldsTree = Object.freeze({
