@@ -1,6 +1,12 @@
 const axios = require('axios');
 const constants = require('./const.js').constants;
 
+if (!Array.prototype.last) {
+    Array.prototype.last = function() {
+        return this[this.length - 1];
+    };
+}
+
 module.exports.searchByTitle = function(text, configuration) {
     return videosListSearch('title', text, configuration);
 };
