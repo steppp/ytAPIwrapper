@@ -97,7 +97,11 @@ function videosListSearch(searchType, text, configuration) {
             var items = response.data.items;
             var paths = skipFields ? configuration['fields'] :
                 defaultSearchConfiguration['fields'];
-            items = moveToTopLevel(items, paths);
+            items = moveToTopLevel(items, paths, function(leaf, key, destObj) {
+                if (thumbnailsSize.indexOf(key) != -1)
+                    key = 'thumbnails_' + key;
+                destObj[key] = leaf;
+            });
             resolve(items);
         }).catch(function(error) {
             /* TODO: Handle error */
@@ -106,18 +110,40 @@ function videosListSearch(searchType, text, configuration) {
 }
 
 function moveToTopLevel(items, paths) {
+    var formattedObj = {};
     var formattedList = [];
+    var adaptedPaths = adaptPaths(paths);
+    var copy = {};
 
-    for (var item in items) {
-        var formattedObj = {};
-        visitTreePaths(item, paths, function(leaf, key) {
+    if (!copyFunction) {
+        copy = function(leaf, key) {
             formattedObj[key] = leaf;
-        });
+        };
+    } else {
+        copy = function(leaf, key) {
+            copyFunction(leaf, key, formattedObj);
+        };
+    }
+
+    for (var i = 0; i < adaptedPaths.length; i++) {
+        var formattedObj = {};
+        visitTreePaths(items[i], adaptedPaths, copy);
 
         formattedList.push(formattedObj);
     }
 
     return formattedList;
+}
+
+function adaptPaths(paths) {
+    var adapted = [];
+
+    for (var i = 0; i < paths.length; i++) {
+        var firstBarIndex = paths[i].indexOf("/");
+        adapted.push(paths[i].slice(firstBarIndex + 1));
+    }
+
+    return adapted;
 }
 
 function buildParametersFromConfig(parameters, config, skipFields = false) {
@@ -132,9 +158,8 @@ function buildParametersFromConfig(parameters, config, skipFields = false) {
 }
 
 function buildFieldsString(fieldsTree, fieldsList) {
-    var tree = visitTreePaths(fieldsTree, fieldsList, (leaf, _) => {
-        console.log(leaf + ',setting to true')
-        leaf = true
+    var tree = visitTreePaths(fieldsTree, fieldsList, () => {
+        return true;
     });
 
     // TODO: create a cache to call less frequently the following function
