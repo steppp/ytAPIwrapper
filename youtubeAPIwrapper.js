@@ -24,8 +24,11 @@ module.exports.getVideoDetails = function(videoIds, configuration) {
             var items = response.data.items;
             var paths = skipFields ? configuration['fields'] :
                 defaultSearchConfiguration['fields'];
-
-            items = moveToTopLevel(items, paths);
+            items = moveToTopLevel(items, paths, function(leaf, key, destObj) {
+                if (thumbnailsSize.indexOf(key) != -1)
+                    key = 'thumbnails_' + key;
+                destObj[key] = leaf;
+            });
             resolve(items);
         }).catch(function(error) {
             /* TODO: Handle error */
@@ -147,7 +150,7 @@ function adaptPaths(paths) {
 }
 
 function buildParametersFromConfig(parameters, config, skipFields = false) {
-    for (k in config) {
+    for (var k in config) {
         if ('fields' == k) {
             if (!skipFields)
                 parameters[k] = buildFieldsString(searchFieldsTree, config[k]);
